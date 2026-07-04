@@ -120,34 +120,58 @@ export async function listDataPoints(dataType: string, opts: ListOptions): Promi
 }
 
 export interface RollupPoint {
-  civilStartTime?: string;
+  civilStartTime?: unknown;
   startTime?: string;
   [k: string]: unknown;
 }
 
-/** Daily aggregates via dailyRollUp: one point per local day in [from, to]. */
+/** The API caps a single dailyRollUp range at 14 days. */
+const ROLLUP_MAX_DAYS = 14;
+
+function addDaysStr(dateStr: string, n: number): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Daily aggregates via dailyRollUp: one point per local day in [from, to]
+ * (both inclusive). The API's range end is EXCLUSIVE and a single request is
+ * capped at 14 days (INVALID_ROLLUP_QUERY_DURATION) — so chunk accordingly.
+ */
 export async function dailyRollUp(
   dataType: string,
   fromDate: string,
   toDate: string,
 ): Promise<RollupPoint[]> {
-  const res = await healthFetch(`/users/me/dataTypes/${dataType}/dataPoints:dailyRollUp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      range: {
-        start: { date: isoToDateObj(fromDate) },
-        end: { date: isoToDateObj(toDate) },
-      },
-      windowSizeDays: 1,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`dailyRollUp ${dataType} failed: ${res.status} ${body.slice(0, 500)}`);
+  const points: RollupPoint[] = [];
+  let start = fromDate.slice(0, 10);
+  const endExclusive = addDaysStr(toDate.slice(0, 10), 1);
+  while (start < endExclusive) {
+    const chunkEndExclusive =
+      addDaysStr(start, ROLLUP_MAX_DAYS) < endExclusive
+        ? addDaysStr(start, ROLLUP_MAX_DAYS)
+        : endExclusive;
+    const res = await healthFetch(`/users/me/dataTypes/${dataType}/dataPoints:dailyRollUp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        range: {
+          start: { date: isoToDateObj(start) },
+          end: { date: isoToDateObj(chunkEndExclusive) },
+        },
+        windowSizeDays: 1,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`dailyRollUp ${dataType} failed: ${res.status} ${body.slice(0, 500)}`);
+    }
+    const data = (await res.json()) as { rollupDataPoints?: RollupPoint[] };
+    points.push(...(data.rollupDataPoints ?? []));
+    start = chunkEndExclusive;
   }
-  const data = (await res.json()) as { rollupDataPoints?: RollupPoint[] };
-  return data.rollupDataPoints ?? [];
+  return points;
 }
 
 function isoToDateObj(d: string): { year: number; month: number; day: number } {
@@ -167,15 +191,37 @@ export function payloadOf(dp: DataPoint, dataType: string): Record<string, unkno
   return dp as Record<string, unknown>;
 }
 
+/**
+ * Civil times come back as structured protos, e.g.
+ * { date: {year, month, day}, time: {hours, minutes, seconds} } — convert to
+ * "YYYY-MM-DDTHH:mm:ss". Plain ISO strings pass through unchanged.
+ */
+export function civilToString(v: unknown): string | null {
+  if (v == null) return null;
+  if (typeof v === "string") return v;
+  if (typeof v !== "object") return null;
+  const o = v as { date?: unknown; time?: Record<string, unknown> };
+  const d = dateProtoToStr(o.date);
+  if (!d) return null;
+  const t = o.time ?? {};
+  const pad = (n: unknown) => String(Number(n ?? 0)).padStart(2, "0");
+  return `${d}T${pad(t.hours)}:${pad(t.minutes)}:${pad(t.seconds)}`;
+}
+
 /** Civil timestamp of a sample/interval point, preferring civil over physical time. */
 export function civilTimeOf(payload: Record<string, unknown>): string | null {
   const sample = payload.sampleTime as Record<string, unknown> | undefined;
   if (sample) {
-    return (sample.civilTime as string) ?? (sample.physicalTime as string) ?? (sample.time as string) ?? null;
+    return (
+      civilToString(sample.civilTime) ??
+      (sample.physicalTime as string) ??
+      (sample.time as string) ??
+      null
+    );
   }
   const interval = payload.interval as Record<string, unknown> | undefined;
   if (interval) {
-    return (interval.civilStartTime as string) ?? (interval.startTime as string) ?? null;
+    return civilToString(interval.civilStartTime) ?? (interval.startTime as string) ?? null;
   }
   return null;
 }
@@ -183,7 +229,7 @@ export function civilTimeOf(payload: Record<string, unknown>): string | null {
 export function civilEndTimeOf(payload: Record<string, unknown>): string | null {
   const interval = payload.interval as Record<string, unknown> | undefined;
   if (interval) {
-    return (interval.civilEndTime as string) ?? (interval.endTime as string) ?? null;
+    return civilToString(interval.civilEndTime) ?? (interval.endTime as string) ?? null;
   }
   return null;
 }

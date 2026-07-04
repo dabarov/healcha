@@ -3,6 +3,7 @@ import { db, schema } from "@/db/client";
 import {
   civilEndTimeOf,
   civilTimeOf,
+  civilToString,
   dailyRollUp,
   dateProtoToStr,
   listDataPoints,
@@ -120,10 +121,21 @@ async function chunkedUpsert<T extends Record<string, unknown>>(
     for (const c of updateCols) {
       set[c] = sql.raw(`excluded.${camelToSnake(c)}`);
     }
-    await db()
-      .insert(table)
-      .values(chunk as any)
-      .onConflictDoUpdate({ target, set });
+    // Intraday backfills push hundreds of thousands of rows to Turso; a
+    // transient failure mid-stream shouldn't kill the whole data type.
+    let attempt = 0;
+    for (;;) {
+      try {
+        await db()
+          .insert(table)
+          .values(chunk as any)
+          .onConflictDoUpdate({ target, set });
+        break;
+      } catch (e) {
+        if (++attempt > 3) throw e;
+        await new Promise((r) => setTimeout(r, attempt * 2000));
+      }
+    }
   }
 }
 
@@ -182,8 +194,8 @@ function extractStages(p: Record<string, unknown>): {
       const minutes =
         durationMinutes(s.duration) ??
         minutesBetween(
-          (interval?.civilStartTime ?? interval?.startTime) as string | null,
-          (interval?.civilEndTime ?? interval?.endTime) as string | null,
+          civilToString(interval?.civilStartTime) ?? ((interval?.startTime as string) || null),
+          civilToString(interval?.civilEndTime) ?? ((interval?.endTime as string) || null),
         );
       if (stage) add(stage, minutes);
     }
@@ -380,14 +392,17 @@ const handleIrn: Handler = async (points, affected) => {
   for (const dp of points) {
     const p = payloadOf(dp, "irregular-rhythm-notification");
     const win = (p.alertWindow ?? p.window) as Record<string, unknown> | undefined;
-    const start = (win?.civilStartTime ?? win?.startTime ?? civilTimeOf(p)) as string | null;
+    const start =
+      civilToString(win?.civilStartTime) ??
+      ((win?.startTime as string) || null) ??
+      civilTimeOf(p);
     if (!start) continue;
     const date = dateOf(start);
     const row: typeof schema.irregularRhythmEvents.$inferInsert = {
       id: String(dp.name ?? `${date}-${start}`),
       date,
       windowStart: start,
-      windowEnd: (win?.civilEndTime ?? win?.endTime ?? null) as string | null,
+      windowEnd: civilToString(win?.civilEndTime) ?? ((win?.endTime as string) || null),
       raw: JSON.stringify(p).slice(0, 8000),
     };
     await db()
@@ -472,22 +487,57 @@ const LIST_TYPES: TypeConfig[] = [
 ];
 
 /** Daily totals come from dailyRollUp — accurate merged aggregates per day. */
+// Rollup values arrive nested under the camelCase type key, with string
+// numbers and typed field names (verified against the live API):
+//   steps: {countSum}, distance: {millimetersSum}, totalCalories: {kcalSum},
+//   activeEnergyBurned: {kcalSum},
+//   activeZoneMinutes: {sumInFatBurnHeartZone, sumInCardioHeartZone, sumInPeakHeartZone}
 const ROLLUP_TYPES: Array<{
   dataType: string;
-  keyPattern: RegExp;
   column: string;
   round?: boolean;
+  extract: (v: Record<string, unknown>) => number | null;
 }> = [
-  { dataType: "steps", keyPattern: /^(count|steps)$/i, column: "steps", round: true },
+  {
+    dataType: "steps",
+    column: "steps",
+    round: true,
+    extract: (v) => num(v.countSum) ?? deepFindNumber(v, /count/i),
+  },
   {
     dataType: "active-zone-minutes",
-    keyPattern: /activeZoneMinutes|minutes/i,
     column: "azm",
     round: true,
+    // Fitbit AZM: fat-burn minutes count once, cardio/peak count double.
+    extract: (v) => {
+      const fat = num(v.sumInFatBurnHeartZone);
+      const cardio = num(v.sumInCardioHeartZone);
+      const peak = num(v.sumInPeakHeartZone);
+      if (fat == null && cardio == null && peak == null) {
+        return deepFindNumber(v, /minutes/i);
+      }
+      return (fat ?? 0) + 2 * ((cardio ?? 0) + (peak ?? 0));
+    },
   },
-  { dataType: "distance", keyPattern: /meters|distance/i, column: "distanceMeters" },
-  { dataType: "total-calories", keyPattern: /calorie|energy/i, column: "caloriesTotal" },
-  { dataType: "active-energy-burned", keyPattern: /calorie|energy/i, column: "caloriesActive" },
+  {
+    dataType: "distance",
+    column: "distanceMeters",
+    extract: (v) => {
+      const mm = num(v.millimetersSum);
+      if (mm != null) return mm / 1000;
+      return num(v.metersSum) ?? deepFindNumber(v, /meters/i);
+    },
+  },
+  {
+    dataType: "total-calories",
+    column: "caloriesTotal",
+    extract: (v) => num(v.kcalSum) ?? deepFindNumber(v, /kcal|calorie|energy/i),
+  },
+  {
+    dataType: "active-energy-burned",
+    column: "caloriesActive",
+    extract: (v) => num(v.kcalSum) ?? deepFindNumber(v, /kcal|calorie|energy/i),
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -565,9 +615,11 @@ export async function syncHealthData(opts?: { full?: boolean }): Promise<SyncRes
       const points = await dailyRollUp(r.dataType, earliestFrom, today);
       let count = 0;
       for (const p of points) {
-        const date = (p.civilStartTime ?? p.startTime ?? "").slice(0, 10);
+        const date =
+          civilToString(p.civilStartTime)?.slice(0, 10) ??
+          (typeof p.startTime === "string" ? dateOf(p.startTime) : "");
         if (!date) continue;
-        const value = deepFindNumber(p, r.keyPattern);
+        const value = r.extract(payloadOf(p as DataPoint, r.dataType));
         if (value == null) continue;
         await upsertDaily(date, { [r.column]: r.round ? Math.round(value) : value });
         affected.add(date);
