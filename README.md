@@ -133,12 +133,14 @@ Push the repo to GitHub, then add **repository secrets** (Settings → Secrets
 and variables → Actions → Secrets):
 
 `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `GOOGLE_CLIENT_ID`,
-`GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `ANTHROPIC_API_KEY`,
-`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `DASHBOARD_SECRET`
+`GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `GEMINI_API_KEY` (or
+`ANTHROPIC_API_KEY`), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
+`DASHBOARD_SECRET`
 
 and **repository variables** (same page → Variables):
 
-`APP_URL`, `APP_TIMEZONE`, optionally `ANTHROPIC_MODEL`.
+`APP_URL`, `APP_TIMEZONE`, optionally `GEMINI_MODEL` / `LLM_PROVIDER` /
+`ANTHROPIC_MODEL`.
 
 Two workflows are included:
 
@@ -204,4 +206,9 @@ src/app/            Next.js dashboard + API routes        src/middleware.ts  acc
 - `/pull` and long syncs run inside the Telegram webhook handler; on Vercel
   the route sets `maxDuration = 300`. If your plan caps function duration
   lower, prefer the GitHub Actions sync + `/today`.
-- Anthropic model is `ANTHROPIC_MODEL` (default `claude-haiku-4-5`).
+- **LLM provider** (`src/lib/ai/llm.ts`): if `GEMINI_API_KEY` is set, all
+  summaries + text-to-SQL run on Gemini (`GEMINI_MODEL`, default
+  `gemini-2.5-flash` — free tier via https://aistudio.google.com/apikey; a
+  Gemini consumer subscription is unrelated to the API). Otherwise the
+  Anthropic path is used (`ANTHROPIC_MODEL`, default `claude-haiku-4-5`).
+  Force one with `LLM_PROVIDER=gemini|anthropic`.

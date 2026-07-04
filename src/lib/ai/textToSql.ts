@@ -1,6 +1,6 @@
 import { db, libsql, schema } from "@/db/client";
 import { nowIso, todayLocal } from "@/lib/dates";
-import { complete } from "./anthropic";
+import { complete } from "./llm";
 
 /**
  * Conversational querying: free-text question → LLM-generated SQL →

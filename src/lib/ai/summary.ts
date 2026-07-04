@@ -2,7 +2,7 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { addDays } from "@/lib/dates";
 import { readinessVerdict } from "@/lib/baseline";
-import { complete } from "./anthropic";
+import { complete } from "./llm";
 
 /**
  * The shared daily-summary generator — single source of truth for
