@@ -1,0 +1,39 @@
+name: Morning brief
+
+on:
+  schedule:
+    # GitHub cron runs in UTC — adjust to ~07:15 in YOUR timezone.
+    # e.g. Europe/London summer (UTC+1): 15 6 * * *   winter: 15 7 * * *
+    - cron: "15 6 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: health-jobs
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sync + send morning brief
+        run: npx tsx scripts/morning-brief.ts
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL || 'claude-haiku-4-5' }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DASHBOARD_SECRET: ${{ secrets.DASHBOARD_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+          APP_TIMEZONE: ${{ vars.APP_TIMEZONE }}

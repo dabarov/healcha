@@ -1,0 +1,41 @@
+name: Periodic sync
+
+on:
+  schedule:
+    # Keep intraday data reasonably fresh through the day (UTC).
+    - cron: "5 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Full re-sync of the lookback window"
+        type: boolean
+        default: false
+
+concurrency:
+  group: health-jobs
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sync health data
+        run: npx tsx scripts/sync.ts ${{ inputs.full && '--full' || '' }}
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DASHBOARD_SECRET: ${{ secrets.DASHBOARD_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+          APP_TIMEZONE: ${{ vars.APP_TIMEZONE }}

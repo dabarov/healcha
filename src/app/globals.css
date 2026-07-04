@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Dark, clean, deviation-from-baseline. Palette per dataviz reference (dark mode). */
+:root {
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --hairline: rgba(255, 255, 255, 0.1);
+
+  /* series colors — color follows the metric, everywhere */
+  --c-readiness: #3987e5; /* blue */
+  --c-hrv: #199e70; /* aqua */
+  --c-rhr: #e66767; /* red */
+  --c-sleep: #9085e9; /* violet */
+  --c-steps: #c98500; /* yellow */
+  --c-azm: #d95926; /* orange */
+
+  --good: #0ca30c;
+  --bad: #d03b3b;
+}
+
+html {
+  background: var(--page);
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
