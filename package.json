@@ -12,7 +12,10 @@
     "auth:google": "tsx scripts/auth.ts",
     "sync": "tsx scripts/sync.ts",
     "brief": "tsx scripts/morning-brief.ts",
-    "telegram:webhook": "tsx scripts/set-telegram-webhook.ts"
+    "telegram:webhook": "tsx scripts/set-telegram-webhook.ts",
+    "seed": "tsx scripts/seed-demo.ts",
+    "bot:dev": "tsx scripts/bot-dev.ts",
+    "ask": "tsx scripts/ask.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
