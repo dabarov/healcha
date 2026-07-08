@@ -1,18 +1,30 @@
 import { complete as anthropicComplete } from "./anthropic";
+import { complete as ollamaComplete } from "./ollama";
 
 /**
  * Provider-agnostic one-shot completion for summaries + text-to-SQL.
  *
  * Provider selection (cheapest wins):
- *   - LLM_PROVIDER=gemini|anthropic forces one, else
- *   - GEMINI_API_KEY set → Gemini (free tier on flash models), else Anthropic.
+ *   - LLM_PROVIDER=ollama|gemini|anthropic forces one, else
+ *   - local Ollama is tried first (free, private); if it is unreachable or
+ *     errors, fall back to Gemini (free tier) when GEMINI_API_KEY is set,
+ *     else Anthropic.
  */
 
 export async function complete(system: string, user: string, maxTokens = 1024): Promise<string> {
   const forced = process.env.LLM_PROVIDER?.toLowerCase();
-  const useGemini =
-    forced === "gemini" || (forced !== "anthropic" && !!process.env.GEMINI_API_KEY);
-  if (useGemini) return geminiComplete(system, user, maxTokens);
+  if (forced === "ollama" || forced === "local") return ollamaComplete(system, user, maxTokens);
+  if (forced === "gemini") return geminiComplete(system, user, maxTokens);
+  if (forced === "anthropic") return anthropicComplete(system, user, maxTokens);
+
+  try {
+    return await ollamaComplete(system, user, maxTokens);
+  } catch (e) {
+    console.warn(
+      `Ollama unavailable (${e instanceof Error ? e.message : e}); falling back to cloud LLM`,
+    );
+  }
+  if (process.env.GEMINI_API_KEY) return geminiComplete(system, user, maxTokens);
   return anthropicComplete(system, user, maxTokens);
 }
 
