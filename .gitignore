@@ -4,6 +4,13 @@ out/
 .env
 .env.local
 .env*.local
+local.db*
 *.tsbuildinfo
 .DS_Store
 .vercel
+
+# local-only workspace files (design mockups, agent config, scratch dbs)
+local/
+.claude/
+.agents/
+skills-lock.json
