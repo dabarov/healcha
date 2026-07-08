@@ -7,6 +7,13 @@ for the legacy Fitbit Web API, which this project never touches), stores it in
 answers **free-text questions** about your history (read-only text-to-SQL),
 and serves a **dark, baseline-relative web dashboard** on Vercel.
 
+<p align="center">
+  <img src="docs/dashboard.png" alt="healcha dashboard" width="920">
+</p>
+
+<sub>Every screenshot in this README shows synthetic data from `npm run seed` —
+no real health data lives in this repo.</sub>
+
 ```
 GitHub Actions cron ──▶ scripts/morning-brief.ts ─┐
 Telegram /pull ──▶ api/telegram ─────────────────┼──▶ syncHealthData() ──▶ Turso
@@ -29,6 +36,28 @@ Key design points:
   (`src/lib/baseline.ts`) from HRV/RHR/sleep z-scores.
 - **Read-only AI SQL.** Generated SQL must be a single SELECT/WITH statement,
   mutation keywords are rejected, rows are capped at 200 (`textToSql.ts`).
+
+---
+
+## Try it first (no accounts needed)
+
+The seed script generates ~60 days of plausible synthetic data, so you can
+poke at the dashboard before wiring up anything real:
+
+```sh
+npm install
+cat > .env <<'EOF'
+TURSO_DATABASE_URL=file:local.db
+DASHBOARD_SECRET=letmein
+EOF
+npm run db:migrate
+npm run seed
+npm run dev        # http://localhost:3000 — log in with "letmein"
+```
+
+The AI brief and chat also work locally if Ollama is running
+(`ollama pull qwen3`) — no API key required. Everything else on the page is
+computed from the seeded data.
 
 ---
 
@@ -172,11 +201,36 @@ days of data before z-scores/readiness appear, and stabilize at ~30 days.
 days"*, *"resting HR on days after weightlifting"*. Every generated query is
 logged to `ai_query_log` for debugging.
 
-**Dashboard** — KPI cards (readiness, sleep score, resting HR, HRV) with
-sparklines and %-vs-baseline deltas; HRV + resting-HR trends with the 30-day
-baseline band (mean ± 1σ) shaded behind the line; stacked sleep stages; steps
-and active-zone-minutes; the AI "today" summary (same generator as the brief);
-a **Sync now** button with the last-sync timestamp. Fully responsive.
+**Dashboard** — a dark, single-screen "sporty" UI (design tokens in
+[`DESIGN.md`](DESIGN.md)), everything baseline-relative and computed locally
+from the synced data. The calendar **time-travels the whole page**: tap any
+past day and the brief, readiness ring, metric cards, sparklines and sleep
+card all re-point to that day.
+
+- **Today's brief** — the AI daily summary (same generator + per-date cache as
+  the Telegram brief), with one-click regenerate.
+- **Readiness hero** — animated 0–100 ring, plain-English verdict
+  (Prime / Good / Fair / Take it easy), delta vs your 30-day baseline, and the
+  three drivers (sleep, resting HR, HRV) with status dots.
+- **Metric cards** — sleep score, resting HR, HRV: value, %-vs-baseline delta,
+  14-day sparkline and a jargon-free one-liner explaining the number.
+- **Your day** — steps vs goal (`STEPS_GOAL`, default 9000) with progress ring
+  copy, plus fun stats: 14-night **sleep debt**, **social jetlag**, and your
+  **move streak**.
+- **30-day trend** — tabbed readiness / sleep / resting-HR / HRV chart with a
+  dashed personal-mean line; the line draws itself in on each tab switch.
+- **That night's sleep** — stage bar + legend when the device reports stages,
+  otherwise bed/wake times, duration and efficiency.
+- **Ask healcha** — an inline chat over the same guarded text-to-SQL pipeline
+  as Telegram, with suggestion chips and an expandable SQL disclosure.
+
+Plus a **Sync now** button in the header. Derived-metric formulas + sources
+live in `src/lib/derived.ts`. Fully responsive.
+
+<p align="center">
+  <img src="docs/chat.png" alt="Ask healcha — chat over guarded text-to-SQL" width="52%">
+  <img src="docs/dashboard-mobile.png" alt="Dashboard on a phone" width="28%">
+</p>
 
 ---
 
@@ -188,7 +242,10 @@ src/db/             Drizzle schema + Turso client        drizzle/  generated SQL
 src/lib/google/     OAuth + Health API client (pagination, civil-time filters)
 src/lib/sync/       syncHealthData() — the single ingestion path
 src/lib/baseline.ts rolling baselines, readiness + sleep-score computation
+src/lib/derived.ts  derived dashboard metrics (sleep debt/regularity, ACWR,
+                    HR zones, recovery quadrant, strain signals) + sources
 src/lib/ai/         Anthropic client, shared summary generator, text-to-SQL
+DESIGN.md           UI style reference (dark "sporty" design tokens + motion)
 src/lib/telegram/   bot commands + push helper
 src/app/            Next.js dashboard + API routes        src/middleware.ts  access gate
 .github/workflows/  scheduled sync + morning brief
@@ -206,9 +263,17 @@ src/app/            Next.js dashboard + API routes        src/middleware.ts  acc
 - `/pull` and long syncs run inside the Telegram webhook handler; on Vercel
   the route sets `maxDuration = 300`. If your plan caps function duration
   lower, prefer the GitHub Actions sync + `/today`.
-- **LLM provider** (`src/lib/ai/llm.ts`): if `GEMINI_API_KEY` is set, all
-  summaries + text-to-SQL run on Gemini (`GEMINI_MODEL`, default
-  `gemini-2.5-flash` — free tier via https://aistudio.google.com/apikey; a
-  Gemini consumer subscription is unrelated to the API). Otherwise the
-  Anthropic path is used (`ANTHROPIC_MODEL`, default `claude-haiku-4-5`).
-  Force one with `LLM_PROVIDER=gemini|anthropic`.
+- **LLM provider** (`src/lib/ai/llm.ts`): by default a local model via
+  Ollama is tried first (`OLLAMA_MODEL`, default `qwen3`, at
+  `OLLAMA_BASE_URL`, default `http://localhost:11434` — free and private;
+  `ollama pull qwen3`). If Ollama is unreachable (e.g. on Vercel) the
+  call falls back to Gemini when `GEMINI_API_KEY` is set (`GEMINI_MODEL`,
+  default `gemini-2.5-flash` — free tier via
+  https://aistudio.google.com/apikey; a Gemini consumer subscription is
+  unrelated to the API), else Anthropic (`ANTHROPIC_MODEL`, default
+  `claude-haiku-4-5`). Force one with
+  `LLM_PROVIDER=ollama|gemini|anthropic`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
