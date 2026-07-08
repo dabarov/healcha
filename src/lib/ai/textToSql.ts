@@ -87,13 +87,32 @@ export interface AskResult {
   rowCount?: number;
 }
 
-export async function askHealthQuestion(question: string): Promise<AskResult> {
+export interface ChatTurn {
+  question: string;
+  answer: string;
+}
+
+/** Recent Q/A pairs rendered as context so follow-ups ("and last month?") resolve. */
+function historyBlock(history: ChatTurn[]): string {
+  if (!history.length) return "";
+  const lines = history
+    .slice(-6)
+    .map((t) => `Q: ${t.question}\nA: ${t.answer.slice(0, 500)}`)
+    .join("\n\n");
+  return `Recent conversation (for resolving references in the new question):\n${lines}\n\n`;
+}
+
+export async function askHealthQuestion(
+  question: string,
+  history: ChatTurn[] = [],
+): Promise<AskResult> {
   const schemaDoc = SCHEMA_DOC.replace("{TODAY}", todayLocal());
+  const context = historyBlock(history);
   let generated: string | undefined;
   try {
     generated = await complete(
       SQL_SYSTEM,
-      `${schemaDoc}\n\nQuestion: ${question}`,
+      `${schemaDoc}\n\n${context}Question: ${question}`,
       600,
     );
     const safeSql = sanitizeSql(generated);
@@ -107,7 +126,7 @@ export async function askHealthQuestion(question: string): Promise<AskResult> {
 
     const answer = await complete(
       ANSWER_SYSTEM,
-      `Question: ${question}\n\nSQL used:\n${safeSql}\n\nResult rows (JSON, ${rows.length} rows):\n${JSON.stringify(rows).slice(0, 12000)}`,
+      `${context}Question: ${question}\n\nSQL used:\n${safeSql}\n\nResult rows (JSON, ${rows.length} rows):\n${JSON.stringify(rows).slice(0, 12000)}`,
       700,
     );
 
