@@ -5,16 +5,29 @@ export default async function LoginPage({
 }) {
   const { error } = await searchParams;
   return (
-    <main className="min-h-dvh flex items-center justify-center p-6">
+    <main
+      className="flex min-h-dvh items-center justify-center p-6"
+      style={{ background: "var(--bg)" }}
+    >
       <form
         method="POST"
         action="/api/auth/login"
-        className="card w-full max-w-sm p-8 flex flex-col gap-4"
+        className="card rise flex w-full max-w-sm flex-col gap-4 p-6"
       >
-        <h1 className="text-lg font-semibold">Health dashboard</h1>
-        <p className="text-sm" style={{ color: "var(--ink-2)" }}>
-          Enter the access secret to continue.
-        </p>
+        <div className="flex flex-col gap-1">
+          <h1
+            className="head text-[28px] font-bold leading-none tracking-[-0.02em]"
+            style={{ color: "var(--accent)" }}
+          >
+            healcha
+          </h1>
+          <p className="text-[13px]" style={{ color: "var(--faint)" }}>
+            train with your data
+          </p>
+          <p className="mt-2 text-sm" style={{ color: "var(--mut)" }}>
+            Enter the access secret to continue.
+          </p>
+        </div>
         {error && (
           <p className="text-sm" style={{ color: "var(--bad)" }}>
             Wrong secret — try again.
@@ -25,18 +38,9 @@ export default async function LoginPage({
           name="password"
           autoFocus
           placeholder="Access secret"
-          className="rounded-lg px-3 py-2 text-sm outline-none"
-          style={{
-            background: "var(--page)",
-            border: "1px solid var(--hairline)",
-            color: "var(--ink)",
-          }}
+          className="input"
         />
-        <button
-          type="submit"
-          className="rounded-lg px-3 py-2 text-sm font-medium"
-          style={{ background: "var(--c-readiness)", color: "#fff" }}
-        >
+        <button type="submit" className="btn btn-accent w-full">
           Unlock
         </button>
       </form>

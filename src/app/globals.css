@@ -1,40 +1,348 @@
 @import "tailwindcss";
 
-/* Dark, clean, deviation-from-baseline. Palette per dataviz reference (dark mode). */
+/*
+ * healcha — "sporty" (see DESIGN.md): near-black canvas, teal accent, one
+ * grotesque family (Archivo) for everything. Labels are uppercase micro-type;
+ * numbers are big and bold. Color is reserved for data and status.
+ */
 :root {
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --hairline: rgba(255, 255, 255, 0.1);
+  /* surfaces */
+  --bg: #0a0b0d;
+  --card: #12161b;
+  --border: #212831;
+  --track: #212831;
 
-  /* series colors — color follows the metric, everywhere */
-  --c-readiness: #3987e5; /* blue */
-  --c-hrv: #199e70; /* aqua */
-  --c-rhr: #e66767; /* red */
-  --c-sleep: #9085e9; /* violet */
-  --c-steps: #c98500; /* yellow */
-  --c-azm: #d95926; /* orange */
+  /* ink */
+  --text: #f2f5f8;
+  --mut: #94a0ad;
+  --faint: #5b6570;
 
-  --good: #0ca30c;
-  --bad: #d03b3b;
+  /* status + series */
+  --accent: #22d3a0; /* recovered / primary */
+  --accent2: #4f8ff5; /* sleep / secondary series */
+  --warn: #f0b23e; /* fair */
+  --bad: #ff5f56; /* strained */
+  --accent-soft: rgba(34, 211, 160, 0.18);
+  --bad-soft: rgba(255, 95, 86, 0.14);
+  --glow: rgba(34, 211, 160, 0.11);
+  --brief-bg: rgba(34, 211, 160, 0.06);
+  --brief-border: rgba(34, 211, 160, 0.3);
+
+  /* shape */
+  --radius: 14px;
+  --pill: 8px;
+  --pill-sm: 7px;
+  --bubble: 10px;
+
+  /* motion — strong curves; built-in easings are too weak */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 html {
-  background: var(--page);
+  background: var(--bg);
 }
 
 body {
-  background: var(--page);
-  color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
+a {
+  color: var(--accent);
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* ---- typography ---------------------------------------------------------- */
+
+/* uppercase micro-label above numbers and sections */
+.eyebrow {
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.head {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ---- primitives ---------------------------------------------------------- */
+
 .card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--pill);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 140ms var(--ease-out), background-color 160ms ease,
+    color 160ms ease, border-color 160ms ease, opacity 160ms ease;
+}
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* press feedback: the interface heard you */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 11px 20px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-accent:hover:not(:disabled) {
+    background: #3be0b1;
+  }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--mut);
+  border: 1px solid var(--border);
+  padding: 6px 13px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-ghost:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--faint);
+  }
+}
+
+/* suggestion chips + trend tabs */
+.chip {
+  background: var(--bg);
+  color: var(--mut);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 6px 11px;
+  font-size: 11.5px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: transform 140ms var(--ease-out), color 160ms ease,
+    border-color 160ms ease, background-color 160ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--faint);
+  }
+}
+.chip:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.tab-btn {
+  border: none;
+  border-radius: var(--pill);
+  padding: 7px 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: transparent;
+  color: var(--faint);
+  transition: background-color 160ms ease, color 160ms ease,
+    transform 140ms var(--ease-out);
+}
+.tab-btn:active {
+  transform: scale(0.97);
+}
+.tab-btn[data-active="true"] {
+  background: var(--card);
+  color: var(--text);
+}
+
+.input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 11px 14px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 160ms ease;
+}
+.input::placeholder {
+  color: var(--faint);
+}
+.input:focus {
+  border-color: var(--accent);
+}
+
+/* status dot with soft halo (brief header, chat header) */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* ---- motion helpers ------------------------------------------------------ */
+
+/* one-time entrance stagger for page sections; decorative only */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 360ms var(--ease-out) both;
+}
+.rise-1 { animation-delay: 40ms; }
+.rise-2 { animation-delay: 80ms; }
+.rise-3 { animation-delay: 120ms; }
+.rise-4 { animation-delay: 160ms; }
+.rise-5 { animation-delay: 200ms; }
+
+/* fade for async / re-keyed content (brief text, day-travel values) */
+.fade-in {
+  opacity: 1;
+  transition: opacity 200ms ease;
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* chat bubbles: enter from slightly below, ease-out, interruptible */
+.bubble-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* trend line draws itself in when a tab mounts (pathLength normalized to 1) */
+.draw-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 600ms var(--ease-out);
+  @starting-style {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* skeleton shimmer for loading text */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+.skeleton {
+  border-radius: 6px;
+  background: var(--track);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* typing indicator (chat) */
+@keyframes think {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+.think-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mut);
+  animation: think 1.1s ease-in-out infinite;
+}
+
+/* calendar day cells */
+.day-cell {
+  transition: background-color 160ms ease, border-color 160ms ease,
+    transform 140ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .day-cell:not(:disabled):hover {
+    border-color: var(--faint);
+  }
+}
+.day-cell:not(:disabled):active {
+  transform: scale(0.92);
+}
+
+/* scrollbars inside cards */
+.hc-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.hc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+.hc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation-duration: 1ms;
+  }
+  .bubble-in {
+    transition: opacity 200ms ease;
+    @starting-style {
+      transform: none;
+    }
+  }
+  .btn:active:not(:disabled),
+  .chip:active:not(:disabled),
+  .tab-btn:active,
+  .day-cell:not(:disabled):active {
+    transform: none;
+  }
+  .think-dot {
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+  }
+  .draw-line {
+    transition: none;
+  }
 }
