@@ -10,6 +10,8 @@
     "app:build": "tauri build",
     "tauri": "tauri",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "sync": "tsx scripts/sync.ts",
@@ -34,6 +36,7 @@
     "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.2",
     "tsx": "^4.23.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
