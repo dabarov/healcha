@@ -46,8 +46,14 @@ Key design points:
 
 ## Quick start
 
-You'll need **Node.js 20+**, and for the desktop shell a **Rust toolchain**
-([rustup.rs](https://rustup.rs)) plus [Tauri's system
+The fastest path is a packaged build from
+[**Releases**](https://github.com/dabarov/healcha/releases) — self-contained
+(Node runtime included), nothing to install. The builds are unsigned, so on
+macOS right-click → Open the first time (or
+`xattr -dr com.apple.quarantine healcha.app`).
+
+To run from source you'll need **Node.js 20+**, and for the desktop shell a
+**Rust toolchain** ([rustup.rs](https://rustup.rs)) plus [Tauri's system
 dependencies](https://tauri.app/start/prerequisites/) (on macOS just the
 Xcode command-line tools).
 
@@ -73,9 +79,11 @@ Either way, the first run walks you through setup — or skips it entirely:
 **No Fitbit handy?** Click *Explore with demo data* and the app seeds 60 days
 of plausible generated data so you can try everything immediately.
 
-`npm run app:build` produces an installable bundle
-(`src-tauri/target/release/bundle/`). The packaged app runs the bundled
-server with your system's `node`, so Node.js must be installed to use it.
+`npm run app:build` produces an installable bundle for your platform under
+`src-tauri/target/release/bundle/`, with a Node runtime bundled in so the
+result runs on machines without Node. Pushing a `v*` tag builds
+macOS (Intel + Apple silicon), Windows and Linux artifacts and drafts a
+GitHub release with them (`.github/workflows/release.yml`).
 
 ## Connecting your Fitbit
 
@@ -190,8 +198,9 @@ DESIGN.md           UI style reference (dark "sporty" design tokens + motion)
   is usually a one-line key rename in `syncHealthData.ts`.
 - **Readiness & sleep score are computed, not Fitbit's** — the API doesn't
   expose readiness/cardio-load or sleep score. Formulas in `src/lib/baseline.ts`.
-- **The packaged app needs Node.js** on the machine it runs on — the server
-  inside the bundle is plain Node, not a compiled binary.
+- **Release builds are unsigned** — macOS quarantines downloaded unsigned
+  apps (right-click → Open once), and Windows SmartScreen shows a warning.
+  Code signing needs paid certificates; building from source sidesteps both.
 - The Tauri window and the browser mode serve the same app; anything you can
   do in one works in the other.
 
