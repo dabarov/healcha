@@ -204,6 +204,13 @@ DESIGN.md           UI style reference (dark "sporty" design tokens + motion)
 - The Tauri window and the browser mode serve the same app; anything you can
   do in one works in the other.
 
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup
+and PR expectations. CI runs `typecheck`, tests, and the build on every pull
+request. Security issues should go through
+[private vulnerability reporting](SECURITY.md), not public issues.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
