@@ -1,0 +1,44 @@
+name: Debug Linux build
+
+on:
+  push:
+    branches:
+      - ci-release-test
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2
+      - run: npm ci
+      - name: Build
+        run: |
+          set -o pipefail
+          npm run tauri build 2>&1 | tee /tmp/build.log
+      - name: Publish log
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP"
+          rm -rf logrepo && mkdir logrepo && cd logrepo
+          git init -q && git checkout -qb debug-log
+          tail -c 100000 /tmp/build.log > build.log || echo "no log" > build.log
+          git -c user.name=ci -c user.email=ci@localhost add build.log
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "linux build log"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" debug-log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
