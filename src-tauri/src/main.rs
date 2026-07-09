@@ -29,6 +29,33 @@ fn reachable(port: u16) -> bool {
     .is_ok()
 }
 
+/// The bundle ships its own Node runtime as a sidecar (fetch-node.mjs +
+/// externalBin), placed next to the app executable. Prefer it; fall back to
+/// a PATH lookup through a login shell for source builds, since double-clicked
+/// apps don't inherit the user's shell environment (Homebrew/nvm paths).
+fn node_command() -> Command {
+    let node_name = if cfg!(windows) { "node.exe" } else { "node" };
+    if let Some(bundled) = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|d| d.join(node_name)))
+        .filter(|p| p.exists())
+    {
+        let mut c = Command::new(bundled);
+        c.arg("server.js");
+        return c;
+    }
+    if cfg!(windows) {
+        let mut c = Command::new("cmd");
+        c.args(["/C", "node server.js"]);
+        c
+    } else {
+        let shell = if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/sh" };
+        let mut c = Command::new(shell);
+        c.args(["-lc", "exec node server.js"]);
+        c
+    }
+}
+
 fn spawn_server(app: &tauri::AppHandle, port: u16) -> Option<Child> {
     if reachable(port) {
         return None; // another instance already serves this port
@@ -41,18 +68,7 @@ fn spawn_server(app: &tauri::AppHandle, port: u16) -> Option<Child> {
     let data_dir = app.path().app_data_dir().expect("no app data dir");
     std::fs::create_dir_all(&data_dir).ok();
 
-    let mut cmd = if cfg!(windows) {
-        let mut c = Command::new("cmd");
-        c.args(["/C", "node server.js"]);
-        c
-    } else {
-        // Login shell so Homebrew/nvm/asdf installs of node are on PATH —
-        // double-clicked apps don't inherit the user's shell environment.
-        let shell = if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/sh" };
-        let mut c = Command::new(shell);
-        c.args(["-lc", "exec node server.js"]);
-        c
-    };
+    let mut cmd = node_command();
     let child = cmd
         .current_dir(&server_dir)
         .env("NODE_ENV", "production")

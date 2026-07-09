@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.dabarov.healcha",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "node scripts/fetch-node.mjs && npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build && node scripts/fetch-node.mjs",
     "frontendDist": "http://127.0.0.1:4823"
   },
   "app": {
@@ -25,6 +25,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "externalBin": ["binaries/node"],
     "resources": {
       "../.next/standalone": "server"
     }
