@@ -14,6 +14,12 @@ for (const f of readdirSync(".next/standalone")) {
   if (f.startsWith(".env")) rmSync(`.next/standalone/${f}`);
 }
 
+// The tracer still pulls tsconfig.json copies out of src-tauri/target (the
+// previous build's bundled resources) despite outputFileTracingExcludes,
+// nesting one level deeper per local rebuild. Nothing under src-tauri is
+// needed at runtime, so drop it outright.
+rmSync(".next/standalone/src-tauri", { recursive: true, force: true });
+
 // Turbopack externalizes native packages via alias symlinks (e.g.
 // .next/node_modules/@libsql/client-<hash> -> node_modules/@libsql/client).
 // Tauri's resource bundler drops symlinks, so materialize them as copies.
