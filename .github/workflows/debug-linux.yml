@@ -27,6 +27,8 @@ jobs:
             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2
       - run: npm ci
       - name: Build
+        env:
+          NO_STRIP: "1"
         run: |
           set -o pipefail
           npm run tauri build 2>&1 | tee /tmp/build.log
