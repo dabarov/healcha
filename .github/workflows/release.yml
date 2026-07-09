@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - ci-release-test # builds only, no release
 
 jobs:
   build:
@@ -12,11 +14,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - macos-latest # Apple silicon
-          - macos-13 # Intel
-          - ubuntu-latest
-          - windows-latest
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+          - platform: ubuntu-latest
+            target: ""
+          - platform: windows-latest
+            target: ""
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -25,21 +31,26 @@ jobs:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: ${{ matrix.target }}
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2
       - run: npm ci
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "healcha ${{ github.ref_name }}"
+          # On the test branch these are empty and no release is touched.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('healcha {0}', github.ref_name) || '' }}
           releaseBody: "See the assets below for your platform."
           releaseDraft: true
+          args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
