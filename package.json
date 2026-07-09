@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/copy-standalone.mjs",
     "start": "next start",
+    "app": "tauri dev",
+    "app:build": "tauri build",
+    "tauri": "tauri",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.2",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^26.1.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

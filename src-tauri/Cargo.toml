@@ -1,0 +1,15 @@
+[package]
+name = "healcha"
+version = "0.1.0"
+description = "Personal Fitbit health dashboard"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+strip = true
