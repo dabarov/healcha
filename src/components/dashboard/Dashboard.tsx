@@ -25,6 +25,7 @@ export interface DashboardProps {
   lastSyncAt: string | null;
   syncErrors: number;
   stepsGoal: number;
+  connected: boolean;
 }
 
 function deltaOf(
@@ -48,6 +49,7 @@ export default function Dashboard({
   lastSyncAt,
   syncErrors,
   stepsGoal,
+  connected,
 }: DashboardProps) {
   const latestDate = days.at(-1)?.date ?? today;
   const [selectedDate, setSelectedDate] = useState(latestDate);
@@ -134,15 +136,15 @@ export default function Dashboard({
               {syncedLabel ? `Synced ${syncedLabel} · Google Health` : "Never synced"}
             </div>
           </div>
-          <SyncNow />
+          <SyncNow connected={connected} lastSyncAt={lastSyncAt} />
         </div>
       </header>
 
       {days.length === 0 ? (
         <div className="card rise rise-1 p-6 text-sm" style={{ color: "var(--mut)" }}>
-          No data yet. Connect Google with <code>npm run auth:google</code>, then hit{" "}
-          <b style={{ color: "var(--text)" }}>Sync now</b> — or seed a local preview with{" "}
-          <code>npm run seed</code>.
+          Google is connected but there's no data yet — hit{" "}
+          <b style={{ color: "var(--text)" }}>Sync now</b>. The first sync backfills
+          the last 30 days.
         </div>
       ) : (
         <div className="relative grid items-start gap-3.5 xl:grid-cols-[minmax(0,1fr)_384px]">
