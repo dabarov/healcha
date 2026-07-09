@@ -18,8 +18,8 @@ import { computeSleepScore, recomputeBaselines } from "@/lib/baseline";
 
 /**
  * The single ingestion function. The dashboard "Sync now" button, the
- * Telegram /pull command and the GitHub Actions cron all call this — no
- * duplicated pull logic anywhere else.
+ * automatic in-app sync and the CLI all call this — no duplicated pull
+ * logic anywhere else.
  *
  * Incremental: reads sync_state per data type and pulls everything since the
  * last successful sync (with a 1-day overlap so late-finalizing data — last

@@ -7,8 +7,8 @@ import { fmtDayLong } from "@/lib/view";
 const cache = new Map<string, string>();
 
 /**
- * The AI daily brief (same generator + per-date cache as the Telegram
- * morning brief). Follows the selected calendar day.
+ * The AI daily brief, generated on demand and cached per date server-side.
+ * Follows the selected calendar day.
  */
 export default function BriefCard({ date, today }: { date: string; today: string }) {
   const [text, setText] = useState<string | null>(cache.get(date) ?? null);

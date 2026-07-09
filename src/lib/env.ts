@@ -10,13 +10,10 @@ export function envOr(name: string, fallback: string): string {
 }
 
 export const APP_TIMEZONE = () =>
-  process.env.APP_TIMEZONE || process.env.TZ || "UTC";
+  process.env.APP_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export const ANTHROPIC_MODEL = () =>
   process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
-
-export const APP_URL = () =>
-  (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
 
 /** Daily step goal for the "Your day" ring. Default 9000. */
 export const STEPS_GOAL = () => {

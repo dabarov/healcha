@@ -5,7 +5,6 @@ import { generateDailySummary } from "@/lib/ai/summary";
 import { nowIso, todayLocal } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 /**
  * AI daily summary for the dashboard "today" panel. Cached per date in

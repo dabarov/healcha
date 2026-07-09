@@ -1,8 +1,10 @@
 import "dotenv/config";
+import { bootstrap } from "../src/lib/bootstrap";
 import { askHealthQuestion } from "../src/lib/ai/textToSql";
 
 /** Test the text-to-SQL pipeline from the terminal: npm run ask -- "question" */
 async function main() {
+  await bootstrap();
   const question = process.argv.slice(2).join(" ").trim();
   if (!question) {
     console.log('Usage: npm run ask -- "how has my sleep been this week?"');

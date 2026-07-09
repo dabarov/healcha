@@ -5,9 +5,8 @@ import { readinessVerdict } from "@/lib/baseline";
 import { complete } from "./llm";
 
 /**
- * The shared daily-summary generator — single source of truth for
- * interpretation. Used by both the Telegram morning brief and the dashboard
- * "today" panel.
+ * The daily-summary generator behind the dashboard brief card — single
+ * source of truth for interpretation.
  */
 
 type Daily = typeof schema.metricsDaily.$inferSelect;
@@ -72,7 +71,7 @@ export async function buildDailyFacts(date: string): Promise<string | null> {
   return lines.join("\n");
 }
 
-const BRIEF_SYSTEM = `You write a personal morning health brief for one person, sent to their phone via Telegram. They train a 4-day upper/lower hypertrophy split.
+const BRIEF_SYSTEM = `You write the daily health brief shown at the top of one person's personal dashboard. They train a 4-day upper/lower hypertrophy split.
 
 Rules:
 - Interpret, don't dump numbers. Every metric you mention must be framed against the 30-day baseline (e.g. "HRV 15% below your 30-day average"), which is provided.

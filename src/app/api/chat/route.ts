@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { askHealthQuestion, type ChatTurn } from "@/lib/ai/textToSql";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 /**
  * Dashboard chat: free-text health questions answered by the same guarded
- * text-to-SQL pipeline as the Telegram bot and the ask CLI. Gated behind
- * DASHBOARD_SECRET by the middleware like the rest of the app.
+ * text-to-SQL pipeline as the ask CLI.
  */
 export async function POST(req: NextRequest) {
   let body: { question?: unknown; history?: unknown };

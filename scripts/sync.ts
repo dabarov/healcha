@@ -1,8 +1,10 @@
 import "dotenv/config";
+import { bootstrap } from "../src/lib/bootstrap";
 import { syncHealthData } from "../src/lib/sync/syncHealthData";
 
-/** GitHub Actions cron entrypoint: sync only (no brief). */
+/** Headless sync CLI — same pull the app runs, for scripting/debugging. */
 async function main() {
+  await bootstrap();
   const result = await syncHealthData({ full: process.argv.includes("--full") });
   console.log(JSON.stringify(result, null, 2));
   const errors = result.types.filter((t) => t.status === "error");

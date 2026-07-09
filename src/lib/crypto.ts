@@ -1,10 +1,10 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { env } from "./env";
+import { tokenEncryptionKey } from "./config";
 
 /** AES-256-GCM encryption for the OAuth refresh token at rest. */
 
 function key(): Buffer {
-  const hex = env("TOKEN_ENCRYPTION_KEY");
+  const hex = tokenEncryptionKey();
   if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
     throw new Error("TOKEN_ENCRYPTION_KEY must be 64 hex chars (openssl rand -hex 32)");
   }
